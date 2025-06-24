@@ -1,27 +1,27 @@
 a = 0.25;
 
-x_max = 100;    
+x_max = 200;    
 dx = x_max/1e3;
 dt = 0.1;    
 
 Nx = round(x_max / dx);  
-T_max = 10;              
+T_max = 100;              
 Nt = round(T_max / dt);  
 
 u0 = zeros(Nx, 1); 
 
 % Initial Condition
 for i=-Nx:Nx - 1
-    u0(i+Nx+1) = (1/2) + (1/2)*tanh(i*dx/(2*sqrt(2))) + 0.2*cos(i*dx);
+    u0(i+Nx+1) = (1/2) + (1/2)*tanh(i*dx/(2*sqrt(2))) + 0.1*cos(i*dx);
 end
 
 tspan = [0 T_max];
 
 [t,u] = ode45(@(t,u) rhs(t, u, dx, a, Nx), tspan, u0);
 %%
-plot(u(1, :))
-ylim([0 1.2]);
-xlim([-100, x_max])
+plot(u(1000, :))
+ylim([-0.2 1.2]);
+xlim([-100, 2000])
 
 function udot=rhs(t,u, dx, a, n)
 
