@@ -1,4 +1,5 @@
-a = 0.25;
+a = 0.01:0.01:0.33;
+c = zeros(length(a), 1);
 
 xi_max = 100;
 dxi = 0.1;
@@ -14,9 +15,16 @@ for i=1:Nxi
 end
 u0(Nxi + 1) = 0;
 
-F = @(u) rhs(dxi, u, a, Nxi, u0);
-u = fsolve(F, u0);
-%%
+% Numerical continuation
+for i=1:length(a)
+    F = @(u) rhs(dxi, u, a(i), Nxi, u0);
+    u_new = fsolve(F, u0);
+
+    c(i) = u_new(end);
+    u0 = u_new;
+    u0(end) = 0;
+end
+%% Plot tanh profile
 plot(xi, u(1:end-1))
 ylim([-0.2 1.2])
 xlabel('\xi'), ylabel('u(\xi)')
@@ -26,6 +34,14 @@ xlabel('\xi'), ylabel('u(\xi)')
 %hold off
 %xlim([-100, 2000])
 
+%% Plot c(a)
+plot(a, c)
+hold on
+plot(a, sqrt(2)*a - 1/sqrt(2))
+title('Wavepeed c(a) as a function of a')
+xlabel('a')
+ylabel('c(a)')
+%%
 function rh = rhs(dxi, u, a, n, u0)
 
     rh=zeros(n+1,1);
