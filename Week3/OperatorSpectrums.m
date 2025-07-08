@@ -1,8 +1,8 @@
 a = 0.4;
 gamma = 1;
-k = 1;
+k = 3.2;
 delta = 1;
-ep = 0.1;
+ep = 0.05;
 
 c_analytical = k/(2*delta*sqrt(gamma)) + (a-1/2)*(sqrt(2)/delta);
 
@@ -10,7 +10,7 @@ ell_max = 20;
 ells = linspace(0, ell_max, 10);
 max_real_part = zeros(size(ells));
 
-xi_max = 50;
+xi_max = 100;
 dxi = 0.25;
 xi = -xi_max:dxi:xi_max;
 
@@ -65,10 +65,12 @@ v = y(Nxi + 1 : end - 1);
 
 %%%%%%%%%%%% Step 2: Build Operator that acts on perturbation and plot spectrum %%%%%%%%%%%%
 % Matrix PDE Setup
-D = spdiags([ones(Nxi,1); (1/ep^2)*ones(Nxi,1)], 0, 2*Nxi, 2*Nxi);
+D = spdiags([ones(Nxi,1); ones(Nxi,1)], 0, 2*Nxi, 2*Nxi);
 U = [u; v];
 
 df = 3*u.^2 - 2*(1+a)*u + a;
+
+chi = 8*v.^2./(9 + 3*v.^2);
 
 dF = [-spdiags(df, 0, Nxi, Nxi), sparse(Nxi, Nxi); I, -gamma * I];
 Diag_u = spdiags(u,  0, Nxi, Nxi);
@@ -78,11 +80,14 @@ for j = 1:length(ells)
     ell = ells(j);
     disp(j)
 
-    Diag_Dv = spdiags((D1_small + 1i*ell*speye(Nxi))*v, 0, Nxi, Nxi);
-    H = [Diag_Dv, Diag_u*(D1_small + 1i*ell*speye(Nxi)); sparse(Nxi, Nxi), sparse(Nxi, Nxi)];
-    D2_y = D2 - ell^2 * speye(2*Nxi);
+    Diag_Dv = spdiags((D1_small + ep^2*1i*ell*speye(Nxi))*chi, 0, Nxi, Nxi);
+    H = [Diag_Dv, Diag_u*(D1_small + ep^2*1i*ell*speye(Nxi)); sparse(Nxi, Nxi), sparse(Nxi, Nxi)];
+    
+    D2_u = D2_small - ep^2 * ell^2 * speye(Nxi);
+    D2_v = (1/ep^2)*D2_small - ell^2 * speye(Nxi);
+    D2_y = blkdiag(D2_u, D2_v);
 
-    Operator = D*D2_y + c_val*D1 + dF - (k/ep)*D1*H;
+    Operator = D2_y + c_val*D1 + dF - (k/ep)*D1*H;
 
     [V, Lambda] = eig(full(Operator));
     max_real(j) = max(real(diag(Lambda)));
@@ -112,6 +117,7 @@ function rh = rhs(y, a, pars, y0)
     D1 = pars.D1;
     D2 = pars.D2;
     rh = zeros(2*Nxi + 1,1);
+    
 
     u0 = y0(1:Nxi);
     v0 = y0(Nxi + 1 : end - 1);
@@ -120,9 +126,11 @@ function rh = rhs(y, a, pars, y0)
     v = y(Nxi+1: end - 1);
     c = y(end);
 
+    chi = 8*v.^2./(9 + 3*v.^2);
+
     f_u = (u - a) .* u .* (1 - u);
     
-    nonlinear_term = D1 * u .* (D1 * v);
+    nonlinear_term = D1 * u .* (D1 * chi);
     rh(1:Nxi) = delta*c*D1*u + (D2 * u) - (1/ep)*k*nonlinear_term + f_u;
     rh(Nxi+1:end - 1) = c*D1*v + (1/ep^2)*D2*v + u - gamma*v;
 
@@ -145,12 +153,14 @@ function J = jac_rhs(y, a, pars, y0)
     v = y(Nxi+1: end - 1);
     c = y(end);
 
+    chi = 8*v.^2./(9 + 3*v.^2);
+
     J = spalloc(2*Nxi+1, 2*Nxi+1, 10*Nxi);
 
     df = 3*u.^2 - 2*(1 + a)*u + a;
 
     J(1:Nxi, 1:Nxi) = delta*c*D1 + D2 + ...
-        - (1/ep)*k * D1 * spdiags(D1 * v, 0, Nxi, Nxi)...
+        - (1/ep)*k * D1 * spdiags(D1 * chi, 0, Nxi, Nxi)...
         - spdiags(df, 0, Nxi, Nxi);
     
     J(1:Nxi, Nxi+1:end-1) = -(1/ep) * k * D1 * spdiags(u, 0, Nxi, Nxi) * D1;
