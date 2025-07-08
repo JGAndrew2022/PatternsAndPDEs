@@ -4,7 +4,6 @@ k = 1;
 delta = 1;
 ep = 0.1;
 
-%c_val = zeros(size(a));
 c_analytical = k/(2*delta*sqrt(gamma)) + (a-1/2)*(sqrt(2)/delta);
 
 ell_max = 20;
@@ -47,7 +46,7 @@ v0(1:half) = 1/(2*gamma) * exp(sqrt(gamma)*ep*xi(1:half));
 v0(half + 1:end) = -1/(2*gamma) * exp(-sqrt(gamma)*ep*xi(half+1:end)) + 1/gamma;
 v0 = v0';
 
-%%%%%%%%%%%% FIND TRAVELING WAVE SOLUTION W/ NEWTON'S METHOD %%%%%%%%%%%%
+%%%%%%%%%%%% Step 1: FIND TRAVELING WAVE SOLUTION W/ NEWTON'S METHOD %%%%%%%%%%%%
 options = optimoptions('fsolve', 'Display', 'off',...
     'MaxIterations', 250, 'SpecifyObjectiveGradient', true);
 
@@ -64,6 +63,7 @@ y = sol;
 u = y(1:Nxi);
 v = y(Nxi + 1 : end - 1);
 
+%%%%%%%%%%%% Step 2: Build Operator that acts on perturbation and plot spectrum %%%%%%%%%%%%
 % Matrix PDE Setup
 D = spdiags([ones(Nxi,1); (1/ep^2)*ones(Nxi,1)], 0, 2*Nxi, 2*Nxi);
 U = [u; v];
@@ -102,14 +102,6 @@ ylabel('Imaginary part');
 title('Spectrum of Linear Operator');
 grid on;
 axis equal;
-
-eigvals = diag(Lambda);
-[~, idx_max_real] = max(real(eigvals));
-
-w0 = V(:, idx_max_real);
-
-epsilon_perturb = 1;
-perturbation = epsilon_perturb * w0;
 
 function rh = rhs(y, a, pars, y0)
     Nxi = pars.Nxi;
@@ -180,9 +172,3 @@ function J = jac_rhs(y, a, pars, y0)
 
     J = sparse(J);
 end
-
-%%
-% Chemotaxis Terms
-Diag_Dv = spdiags((D1_small*v) + (1i*ells).*v, 0, Nxi, Nxi); 
-Diag_u  = spdiags(u,  0, Nxi, Nxi); 
-H = [Diag_Dv, Diag_u*D1_small + Diag_u*1i*ells; sparse(Nxi, Nxi), sparse(Nxi, Nxi)];
