@@ -1,6 +1,6 @@
 a = 0.4;
 gamma = 1;
-k = 3.2;
+k = 4;
 delta = 1;
 ep = 0.05;
 
@@ -71,6 +71,7 @@ U = [u; v];
 df = 3*u.^2 - 2*(1+a)*u + a;
 
 chi = 8*v.^2./(9 + 3*v.^2);
+dchi_dv = -8*v.^2./(9 + 3*v.^2).^2 + 16*v./(9+3*v.^2);
 
 dF = [-spdiags(df, 0, Nxi, Nxi), sparse(Nxi, Nxi); I, -gamma * I];
 Diag_u = spdiags(u,  0, Nxi, Nxi);
@@ -80,8 +81,8 @@ for j = 1:length(ells)
     ell = ells(j);
     disp(j)
 
-    Diag_Dv = spdiags((D1_small + ep^2*1i*ell*speye(Nxi))*chi, 0, Nxi, Nxi);
-    H = [Diag_Dv, Diag_u*(D1_small + ep^2*1i*ell*speye(Nxi)); sparse(Nxi, Nxi), sparse(Nxi, Nxi)];
+    Diag_Dv = spdiags((D1_small + ep^2*1i*ell*speye(Nxi))*dchi_dv, 0, Nxi, Nxi);
+    H = [Diag_Dv, sparse(Nxi, Nxi); sparse(Nxi, Nxi), sparse(Nxi, Nxi)];
     
     D2_u = D2_small - ep^2 * ell^2 * speye(Nxi);
     D2_v = (1/ep^2)*D2_small - ell^2 * speye(Nxi);
